@@ -1,185 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>NEON SLITHER - Multiplayer</title>
-<script src="./peerjs.min.js"></script>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: #0B0F19; color: #F8FAFC; font-family: monospace;
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; min-height: 100vh; overflow: hidden;
-  }
-  .card {
-    background: #111827; border: 2px solid #1E293B; border-radius: 12px;
-    padding: 32px 40px; text-align: center; width: 380px;
-  }
-  h1 { color: #00F0FF; font-size: 32px; letter-spacing: 2px; }
-  .sub { color: #FF2A85; font-weight: bold; margin-bottom: 22px; }
-  label { display: block; text-align: left; font-size: 12px; color: #94A3B8; }
-  input {
-    width: 100%; padding: 10px; margin: 6px 0 16px; border-radius: 6px;
-    border: 1px solid #334155; background: #0B0F19; color: #00F0FF;
-    font-family: monospace; font-size: 16px; outline: none;
-  }
-  button {
-    width: 100%; padding: 11px; border: none; border-radius: 6px;
-    font-family: monospace; font-size: 14px; font-weight: bold;
-    cursor: pointer; margin-bottom: 10px;
-  }
-  .btn-skin { background: #1E293B; color: #00F0FF; }
-  .btn-host { background: #00F0FF; color: #0B0F19; }
-  .btn-join { background: #FF2A85; color: #FFF; }
-  #status { color: #FBBF24; font-size: 12px; min-height: 18px; margin-top: 6px; }
-  #hud {
-    display: none; width: 900px; justify-content: space-between;
-    padding: 10px 4px; font-size: 15px; font-weight: bold;
-  }
-  canvas {
-    display: none; background: #0B0F19; border: 3px solid #FF2A85;
-    border-radius: 6px; cursor: crosshair;
-  }
-</style>
-</head>
-<body>
-<div id="lobby" class="card">
-  <h1>NEON SLITHER</h1>
-  <div class="sub">WEB MULTIPLAYER ARENA</div>
-  <label>USERNAME</label>
-  <input id="uname" maxlength="14" placeholder="Enter your name">
-  <button id="skinBtn" class="btn-skin">SKIN: CYAN PULSE [CHANGE]</button>
-  <button id="hostBtn" class="btn-host">CREATE ROOM (HOST)</button>
-  <label style="margin-top:10px;">OR ENTER 4-LETTER ROOM CODE</label>
-  <input id="roomInput" maxlength="4" placeholder="e.g. X7K2"
-         style="text-transform:uppercase; color:#FBBF24;">
-  <button id="joinBtn" class="btn-join">JOIN ROOM</button>
-  <div id="status"></div>
-</div>
-<div id="hud">
-  <span id="massHud" style="color:#00F0FF;">MASS: 240</span>
-  <span id="roomHud" style="color:#FBBF24;">ROOM: ----</span>
-  <span id="killHud" style="color:#FF2A85;">TAKEDOWNS: 0</span>
-</div>
-<canvas id="arena" width="900" height="620"></canvas>
-<script>
-const W = 900, H = 620, INIT_LEN = 24, ORB_MAX = 45, BOT_MAX = 4;
-const SKINS = [
-  { name: "CYAN PULSE", c: ["#00F0FF", "#00B8D4", "#00838F"] },
-  { name: "MAGENTA WAVE", c: ["#FF2A85", "#D81B60", "#880E4F"] },
-  { name: "TOXIC NEON", c: ["#39FF14", "#00C853", "#1B5E20"] },
-  { name: "SOLAR FLARE", c: ["#FF9E00", "#F57C00", "#E65100"] },
-  { name: "CYBER VIOLET", c: ["#B829EA", "#8E24AA", "#4A148C"] }
-];
-const ORB_COLS = ["#FF2A85", "#00F0FF", "#B829EA", "#39FF14", "#FF9E00"];
-const BOT_NAMES = ["ViperX", "Nova", "Byte", "ZigZag", "Shadow", "Orbit"];
-
-let skinIdx = 0, peer = null, isHost = false, myId = "host";
-let conns = {}, hostConn = null, inputs = {}, state = { snakes: [], orbs: [] };
-let keys = {}, mouse = { x: W / 2, y: H / 2, active: false }, desiredAng = 0;
-
-const unameEl = document.getElementById("uname");
-unameEl.value = "Player_" + Math.floor(100 + Math.random() * 900);
-
-document.getElementById("skinBtn").onclick = () => {
-  skinIdx = (skinIdx + 1) % SKINS.length;
-  const s = SKINS[skinIdx];
-  const btn = document.getElementById("skinBtn");
-  btn.textContent = `SKIN: ${s.name} [CHANGE]`;
-  btn.style.color = s.c[0];
-};
-
-function makeCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  return Array.from({ length: 4 }, () =>
-    chars[Math.floor(Math.random() * chars.length)]
-  ).join("");
-}
-
-function makeSnake(id, name, skin, isBot = false) {
-  const x = 120 + Math.random() * (W - 240);
-  const y = 120 + Math.random() * (H - 240);
-  const ang = Math.random() * Math.PI * 2;
-  const pts = [];
-  for (let i = 0; i < INIT_LEN; i++) {
-    pts.push({ x: x - Math.cos(ang) * i * 6, y: y - Math.sin(ang) * i * 6 });
-  }
-  return {
-    id, name, x, y, ang, mass: 240, skin, isBot, alive: true,
-    boost: false, bCnt: 0, kills: 0, pts, aiT: 0, aiAng: ang
-  };
-}
-
-function spawnOrb(x, y, big = false) {
-  return {
-    x: x ?? (25 + Math.random() * (W - 50)),
-    y: y ?? (25 + Math.random() * (H - 50)),
-    r: big ? 8 : 5, v: big ? 30 : 10,
-    c: ORB_COLS[Math.floor(Math.random() * ORB_COLS.length)]
-  };
-}
-
-function enterArena(roomCode) {
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("hud").style.display = "flex";
-  document.getElementById("arena").style.display = "block";
-  document.getElementById("roomHud").textContent = `ROOM CODE: ${roomCode}`;
-  requestAnimationFrame(loop);
-}
-
-document.getElementById("hostBtn").onclick = () => {
-  const code = makeCode();
-  const name = unameEl.value.trim() || "Host";
-  document.getElementById("status").textContent = "Creating room...";
-  peer = new Peer("NEONSLITHER_" + code);
-  peer.on("open", () => {
-    isHost = true; myId = "host";
-    state.snakes.push(makeSnake("host", name, skinIdx, false));
-    for (let i = 0; i < ORB_MAX; i++) state.orbs.push(spawnOrb());
-    for (let i = 0; i < BOT_MAX; i++) {
-      state.snakes.push(makeSnake("bot_" + i, BOT_NAMES[i], i % SKINS.length, true));
-    }
-    peer.on("connection", conn => {
-      conns[conn.peer] = conn;
-      conn.on("data", msg => {
-        if (msg.type === "join") state.snakes.push(makeSnake(conn.peer, msg.name, msg.skin));
-        else if (msg.type === "input") inputs[conn.peer] = msg;
-      });
-      conn.on("close", () => {
-        delete conns[conn.peer];
-        state.snakes = state.snakes.filter(s => s.id !== conn.peer);
-      });
-    });
-    enterArena(code);
-  });
-  peer.on("error", err => {
-    document.getElementById("status").textContent = "Error: " + err.type;
-  });
-};
-
-document.getElementById("joinBtn").onclick = () => {
-  const code = document.getElementById("roomInput").value.trim().toUpperCase();
-  const name = unameEl.value.trim() || "Player";
-  if (code.length !== 4) {
-    document.getElementById("status").textContent = "Enter a 4-letter code!";
-    return;
-  }
-  document.getElementById("status").textContent = "Connecting to " + code + "...";
-  peer = new Peer();
-  peer.on("open", id => {
-    myId = id;
-    hostConn = peer.connect("NEONSLITHER_" + code);
-    hostConn.on("open", () => {
-      hostConn.send({ type: "join", name, skin: skinIdx });
-      enterArena(code);
-    });
-    hostConn.on("data", msg => { if (msg.type === "state") state = msg.data; });
-  });
-  peer.on("error", () => {
-    document.getElementById("status").textContent = "Room not found!";
-  });
-};
-
 function turnTo(s, target, rate) {
   let diff = (target - s.ang + Math.PI) % (Math.PI * 2) - Math.PI;
   if (diff < -Math.PI) diff += Math.PI * 2;
@@ -191,10 +9,8 @@ function stepHost() {
     if (!s.alive) continue;
     if (s.isBot) {
       let ax = 0, ay = 0, danger = false;
-      if (s.x < 75) { ax = 1; danger = true; }
-      else if (s.x > W - 75) { ax = -1; danger = true; }
-      if (s.y < 75) { ay = 1; danger = true; }
-      else if (s.y > H - 75) { ay = -1; danger = true; }
+      if (s.x < 75) { ax = 1; danger = true; } else if (s.x > W - 75) { ax = -1; danger = true; }
+      if (s.y < 75) { ay = 1; danger = true; } else if (s.y > H - 75) { ay = -1; danger = true; }
       if (danger) { s.aiAng = Math.atan2(ay, ax); s.boost = false; }
       else if (--s.aiT <= 0) {
         s.aiT = 15 + Math.floor(Math.random() * 15);
@@ -203,7 +19,7 @@ function stepHost() {
       }
       turnTo(s, s.aiAng, 0.07);
     } else {
-      const inp = s.id === "host" ? getLocalInput() : inputs[s.id];
+      const inp = s.id === "p1" ? getLocalInput() : guestInput;
       if (inp) {
         if (inp.respawn && !s.alive) Object.assign(s, makeSnake(s.id, s.name, inp.skin));
         turnTo(s, inp.ang, 0.085);
@@ -228,6 +44,7 @@ function stepHost() {
       return true;
     });
   }
+
   for (let s of state.snakes) {
     if (!s.alive) continue;
     if (s.x < 10 || s.x > W - 10 || s.y < 10 || s.y > H - 10) {
@@ -247,20 +64,20 @@ function stepHost() {
       if (!s.alive) break;
     }
   }
-  state.snakes = state.snakes.map(s =>
-    s.isBot && !s.alive ? makeSnake(s.id, s.name, s.skin, true) : s
-  );
+  state.snakes = state.snakes.map(s => s.isBot && !s.alive ? makeSnake(s.id, s.name, s.skin, true) : s);
   while (state.orbs.length < ORB_MAX) state.orbs.push(spawnOrb());
 
-  const slim = {
-    orbs: state.orbs,
-    snakes: state.snakes.map(s => ({
-      id: s.id, name: s.name, x: s.x, y: s.y, ang: s.ang, mass: s.mass,
-      skin: s.skin, alive: s.alive, boost: s.boost, kills: s.kills,
-      pts: s.pts.filter((_, i) => i % 2 === 0)
-    }))
-  };
-  Object.values(conns).forEach(c => { if (c.open) c.send({ type: "state", data: slim }); });
+  if (dc && dc.readyState === "open") {
+    const slim = {
+      orbs: state.orbs,
+      snakes: state.snakes.map(s => ({
+        id: s.id, name: s.name, x: s.x, y: s.y, ang: s.ang, mass: s.mass,
+        skin: s.skin, alive: s.alive, boost: s.boost, kills: s.kills,
+        pts: s.pts.filter((_, i) => i % 2 === 0)
+      }))
+    };
+    dc.send(JSON.stringify({ type: "state", data: slim }));
+  }
 }
 
 function getLocalInput() {
@@ -295,11 +112,11 @@ window.onmouseup = () => { mouse.down = false; };
 function loop() {
   if (isHost) {
     const inp = getLocalInput();
-    const me = state.snakes.find(s => s.id === "host");
-    if (me && !me.alive && inp.respawn) Object.assign(me, makeSnake("host", me.name, skinIdx));
+    const me = state.snakes.find(s => s.id === "p1");
+    if (me && !me.alive && inp.respawn) Object.assign(me, makeSnake("p1", me.name, skinIdx));
     stepHost();
-  } else if (hostConn && hostConn.open) {
-    hostConn.send(getLocalInput());
+  } else if (dc && dc.readyState === "open") {
+    dc.send(JSON.stringify(getLocalInput()));
   }
   draw();
   requestAnimationFrame(loop);
@@ -324,20 +141,18 @@ function draw() {
       ctx.fillStyle = s.boost && i % 2 === 0 ? "#FFFFFF" : cols[i % 3];
       ctx.beginPath(); ctx.arc(s.pts[i].x, s.pts[i].y, rad, 0, Math.PI * 2); ctx.fill();
     }
-
     const ed = rad * 0.65, er = Math.max(3, rad * 0.3);
     for (let side of [-1, 1]) {
       const ex = s.x + Math.cos(s.ang + side * 0.55) * ed;
       const ey = s.y + Math.sin(s.ang + side * 0.55) * ed;
-      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols[0]; ctx.fillStyle = "#FFF";
+      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols; ctx.fillStyle = "#FFF";
       ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.strokeStyle = cols[0]; ctx.lineWidth = 1.3;
+      ctx.strokeStyle = cols; ctx.lineWidth = 1.3;
       ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = "#0B0F19";
       const px = ex + Math.cos(s.ang) * (er * 0.35), py = ey + Math.sin(s.ang) * (er * 0.35);
       ctx.beginPath(); ctx.arc(px, py, er * 0.5, 0, Math.PI * 2); ctx.fill();
     }
-
     ctx.fillStyle = s.id === myId ? "#00F0FF" : "#CBD5E1";
     ctx.font = "bold 12px monospace"; ctx.textAlign = "center";
     ctx.fillText(s.name, s.x, s.y - rad - 10);
