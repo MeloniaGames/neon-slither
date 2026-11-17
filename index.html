@@ -1,3 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<title>NEON SLITHER - Multiplayer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0B0F19; color: #F8FAFC; font-family: monospace;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: 100vh; overflow: hidden;
+  }
+  .card {
+    background: #111827; border: 2px solid #1E293B; border-radius: 12px;
+    padding: 26px 34px; text-align: center; width: 410px;
+  }
+  h1 { color: #00F0FF; font-size: 30px; letter-spacing: 2px; }
+  .sub { color: #FF2A85; font-weight: bold; margin-bottom: 16px; }
+  label { display: block; text-align: left; font-size: 11px; color: #94A3B8; }
+  input {
+    width: 100%; padding: 9px; margin: 5px 0 12px; border-radius: 6px;
+    border: 1px solid #334155; background: #0B0F19; color: #00F0FF;
+    font-family: monospace; font-size: 13px; outline: none;
+  }
+  button {
+    width: 100%; padding: 10px; border: none; border-radius: 6px;
+    font-family: monospace; font-size: 13px; font-weight: bold;
+    cursor: pointer; margin-bottom: 8px;
+  }
+  .btn-skin { background: #1E293B; color: #00F0FF; }
+  .btn-host { background: #00F0FF; color: #0B0F19; }
+  .btn-join { background: #FF2A85; color: #FFF; }
+  .btn-solo { background: #39FF14; color: #0B0F19; }
+  #mpBox { display: none; margin-top: 8px; text-align: left; }
+  #status { color: #FBBF24; font-size: 12px; min-height: 16px; margin-top: 6px; }
+  #hud {
+    display: none; width: 900px; justify-content: space-between;
+    padding: 10px 4px; font-size: 15px; font-weight: bold;
+  }
+  canvas {
+    display: none; background: #0B0F19; border: 3px solid #FF2A85;
+    border-radius: 6px; cursor: crosshair;
+  }
+</style>
+</head>
+<body>
+<div id="lobby" class="card">
+  <h1>NEON SLITHER</h1>
+  <div class="sub">WEB MULTIPLAYER ARENA</div>
+  <label>USERNAME</label>
+  <input id="uname" maxlength="14">
+  <button id="skinBtn" class="btn-skin">SKIN: CYAN PULSE [CHANGE]</button>
+  <button id="soloBtn" class="btn-solo">PLAY SOLO (AI BOTS)</button>
+  <button id="hostBtn" class="btn-host">HOST MULTIPLAYER ROOM</button>
+  <button id="joinModeBtn" class="btn-join">JOIN FRIEND'S ROOM</button>
+  <div id="mpBox">
+    <label id="step1Lbl">1. COPY & SEND THIS INVITE CODE TO FRIEND:</label>
+    <input id="outCode" readonly style="color:#FBBF24;">
+    <label id="step2Lbl">2. PASTE FRIEND'S REPLY CODE HERE:</label>
+    <input id="inCode" placeholder="Paste code here...">
+    <button id="connectBtn" class="btn-host">LAUNCH MULTIPLAYER ARENA</button>
+  </div>
+  <div id="status"></div>
+</div>
+<div id="hud">
+  <span id="massHud" style="color:#00F0FF;">MASS: 240</span>
+  <span id="roomHud" style="color:#FBBF24;">MODE: SOLO</span>
+  <span id="killHud" style="color:#FF2A85;">TAKEDOWNS: 0</span>
+</div>
+<canvas id="arena" width="900" height="620"></canvas>
+<script>
+const W = 900, H = 620, INIT_LEN = 24, ORB_MAX = 45, BOT_MAX = 4;
+const SKINS = [
+  { name: "CYAN PULSE", c: ["#00F0FF", "#00B8D4", "#00838F"] },
+  { name: "MAGENTA WAVE", c: ["#FF2A85", "#D81B60", "#880E4F"] },
+  { name: "TOXIC NEON", c: ["#39FF14", "#00C853", "#1B5E20"] },
+  { name: "SOLAR FLARE", c: ["#FF9E00", "#F57C00", "#E65100"] },
+  { name: "CYBER VIOLET", c: ["#B829EA", "#8E24AA", "#4A148C"] }
+];
+const ORB_COLS = ["#FF2A85", "#00F0FF", "#B829EA", "#39FF14", "#FF9E00"];
+const BOT_NAMES = ["ViperX", "Nova", "Byte", "ZigZag", "Shadow", "Orbit"];
+
+let skinIdx = 0, isHost = true, myId = "p1", pc = null, dc = null;
+let guestInput = null, state = { snakes: [], orbs: [] };
+let keys = {}, mouse = { x: W / 2, y: H / 2, active: false }, desiredAng = 0;
+
+const unameEl = document.getElementById("uname");
+unameEl.value = "Player_" + Math.floor(100 + Math.random() * 900);
+
+document.getElementById("skinBtn").onclick = () => {
+  skinIdx = (skinIdx + 1) % SKINS.length;
+  const s = SKINS[skinIdx];
+  const btn = document.getElementById("skinBtn");
+  btn.textContent = `SKIN: ${s.name} [CHANGE]`;
+  btn.style.color = s.c;
+};
+
+function makeSnake(id, name, skin, isBot = false) {
+  const x = 120 + Math.random() * (W - 240);
+  const y = 120 + Math.random() * (H - 240);
+  const ang = Math.random() * Math.PI * 2;
+  const pts = [];
+  for (let i = 0; i < INIT_LEN; i++) {
+    pts.push({ x: x - Math.cos(ang) * i * 6, y: y - Math.sin(ang) * i * 6 });
+  }
+  return {
+    id, name, x, y, ang, mass: 240, skin, isBot, alive: true,
+    boost: false, bCnt: 0, kills: 0, pts, aiT: 0, aiAng: ang
+  };
+}
+
+function spawnOrb(x, y, big = false) {
+  return {
+    x: x ?? (25 + Math.random() * (W - 50)),
+    y: y ?? (25 + Math.random() * (H - 50)),
+    r: big ? 8 : 5, v: big ? 30 : 10,
+    c: ORB_COLS[Math.floor(Math.random() * ORB_COLS.length)]
+  };
+}
+
+function initWorld(hostName, includeGuest = false, guestName = "Player 2", guestSkin = 1) {
+  state = { snakes: [], orbs: [] };
+  state.snakes.push(makeSnake("p1", hostName, skinIdx, false));
+  if (includeGuest) state.snakes.push(makeSnake("p2", guestName, guestSkin, false));
+  for (let i = 0; i < ORB_MAX; i++) state.orbs.push(spawnOrb());
+  for (let i = 0; i < BOT_MAX; i++) {
+    state.snakes.push(makeSnake("bot_" + i, BOT_NAMES[i], i % SKINS.length, true));
+  }
+}
+
+function launchGame(label) {
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("hud").style.display = "flex";
+  document.getElementById("arena").style.display = "block";
+  document.getElementById("roomHud").textContent = label;
+  requestAnimationFrame(loop);
+}
+
+document.getElementById("soloBtn").onclick = () => {
+  isHost = true; myId = "p1";
+  initWorld(unameEl.value.trim() || "Player", false);
+  launchGame("MODE: SOLO ARENA");
+};
+
+const iceCfg = { iceServers: [{ urls: "stun:://google.com" }] };
+
+document.getElementById("hostBtn").onclick = async () => {
+  isHost = true; myId = "p1";
+  document.getElementById("mpBox").style.display = "block";
+  document.getElementById("step1Lbl").textContent = "1. COPY & SEND INVITE CODE TO FRIEND:";
+  document.getElementById("step2Lbl").textContent = "2. PASTE FRIEND'S REPLY CODE HERE:";
+  document.getElementById("status").textContent = "Generating invite code...";
+
+  pc = new RTCPeerConnection(iceCfg);
+  dc = pc.createDataChannel("slither");
+  setupDataChannel(dc);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await waitIce(pc);
+  document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
+  document.getElementById("status").textContent = "Invite ready! Click outCode to copy.";
+};
+
+document.getElementById("joinModeBtn").onclick = () => {
+  isHost = false; myId = "p2";
+  document.getElementById("mpBox").style.display = "block";
+  document.getElementById("step1Lbl").textContent = "1. PASTE HOST'S INVITE CODE HERE:";
+  document.getElementById("inCode").placeholder = "Paste Host's invite code...";
+  document.getElementById("step2Lbl").textContent = "2. CLICK GENERATE & SEND REPLY BACK:";
+  document.getElementById("outCode").value = "";
+  document.getElementById("connectBtn").textContent = "GENERATE REPLY CODE";
+};
+
+document.getElementById("connectBtn").onclick = async () => {
+  const pasted = document.getElementById("inCode").value.trim();
+  if (!pasted) return;
+  if (isHost) {
+    await pc.setRemoteDescription(JSON.parse(atob(pasted)));
+    document.getElementById("status").textContent = "Connecting to friend...";
+  } else {
+    pc = new RTCPeerConnection(iceCfg);
+    pc.ondatachannel = e => { dc = e.channel; setupDataChannel(dc); };
+    await pc.setRemoteDescription(JSON.parse(atob(pasted)));
+    const ans = await pc.createAnswer();
+    await pc.setLocalDescription(ans);
+    await waitIce(pc);
+    document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
+    document.getElementById("status").textContent = "Send Reply Code to Host to start!";
+  }
+};
+
+function waitIce(conn) {
+  return new Promise(res => {
+    if (conn.iceGatheringState === "complete") return res();
+    conn.onicegatheringstatechange = () => {
+      if (conn.iceGatheringState === "complete") res();
+    };
+    setTimeout(res, 2000);
+  });
+}
+
+function setupDataChannel(channel) {
+  channel.onopen = () => {
+    if (isHost) {
+      initWorld(unameEl.value.trim() || "Host", true, "Guest", (skinIdx + 1) % SKINS.length);
+      launchGame("MULTIPLAYER: HOST");
+    } else {
+      channel.send(JSON.stringify({ type: "hello", name: unameEl.value.trim() || "Guest", skin: skinIdx }));
+      launchGame("MULTIPLAYER: CONNECTED");
+    }
+  };
+  channel.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    if (isHost) {
+      if (msg.type === "hello") {
+        const g = state.snakes.find(s => s.id === "p2");
+        if (g) { g.name = msg.name; g.skin = msg.skin; }
+      } else if (msg.type === "input") guestInput = msg;
+    } else if (msg.type === "state") state = msg.data;
+  };
+}
 function turnTo(s, target, rate) {
   let diff = (target - s.ang + Math.PI) % (Math.PI * 2) - Math.PI;
   if (diff < -Math.PI) diff += Math.PI * 2;
