@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
  <script>
-if (!location.search.includes("v=3")) {
-  location.replace(location.pathname + "?v=3" + location.hash);
+if (!location.search.includes("v=4")) {
+  location.replace(location.pathname + "?v=4" + location.hash);
 }
 </script>
 <link rel="icon" href="data:,">
@@ -148,7 +148,12 @@ document.getElementById("soloBtn").onclick = () => {
   launchGame("MODE: SOLO ARENA");
 };
 
-const iceCfg = { iceServers: [{ urls: ["stun", "://google.com", "19302"].join(":") }] };
+const iceCfg = {
+  iceServers: [
+    { urls: ["stun", "://google.com", "19302"].join(":") },
+    { urls: ["stun", "://google.com", "19302"].join(":") }
+  ]
+};
 
 document.getElementById("hostBtn").onclick = async () => {
   isHost = true; myId = "p1";
