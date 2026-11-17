@@ -2,6 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+ <script>
+if (!location.search.includes("v=3")) {
+  location.replace(location.pathname + "?v=3" + location.hash);
+}
+</script>
 <link rel="icon" href="data:,">
 <title>NEON SLITHER - Multiplayer</title>
 <style>
@@ -143,7 +148,7 @@ document.getElementById("soloBtn").onclick = () => {
   launchGame("MODE: SOLO ARENA");
 };
 
-const iceCfg = { iceServers: [{ urls: "stun:://google.com" }] };
+const iceCfg = { iceServers: [{ urls: ["stun", "://google.com", "19302"].join(":") }] };
 
 document.getElementById("hostBtn").onclick = async () => {
   isHost = true; myId = "p1";
