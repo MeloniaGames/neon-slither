@@ -2,68 +2,95 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
- <script>
-if (!location.search.includes("v=4")) {
-  location.replace(location.pathname + "?v=4" + location.hash);
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<link rel="icon" href="data:,">
+<title>NEON SLITHER - Ultimate Arena</title>
+<script>
+if (!location.search.includes("v=7")) {
+  location.replace(location.pathname + "?v=7" + location.hash);
 }
 </script>
-<link rel="icon" href="data:,">
-<title>NEON SLITHER - Multiplayer</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; touch-action: none; }
   body {
-    background: #0B0F19; color: #F8FAFC; font-family: monospace;
+    background: #070A12; color: #F8FAFC; font-family: monospace;
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; min-height: 100vh; overflow: hidden;
   }
   .card {
-    background: #111827; border: 2px solid #1E293B; border-radius: 12px;
-    padding: 26px 34px; text-align: center; width: 410px;
+    background: #111827; border: 2px solid #1E293B; border-radius: 14px;
+    padding: 24px 28px; text-align: center; width: 92%; max-width: 430px;
+    box-shadow: 0 0 35px rgba(0, 240, 255, 0.12);
   }
-  h1 { color: #00F0FF; font-size: 30px; letter-spacing: 2px; }
+  h1 { color: #00F0FF; font-size: 28px; letter-spacing: 3px; }
   .sub { color: #FF2A85; font-weight: bold; margin-bottom: 16px; }
   label { display: block; text-align: left; font-size: 11px; color: #94A3B8; }
+  .row { display: flex; gap: 6px; margin: 5px 0 12px; }
   input {
-    width: 100%; padding: 9px; margin: 5px 0 12px; border-radius: 6px;
+    width: 100%; padding: 9px 10px; border-radius: 6px;
     border: 1px solid #334155; background: #0B0F19; color: #00F0FF;
     font-family: monospace; font-size: 13px; outline: none;
   }
+  .row input { margin: 0; }
   button {
     width: 100%; padding: 10px; border: none; border-radius: 6px;
     font-family: monospace; font-size: 13px; font-weight: bold;
     cursor: pointer; margin-bottom: 8px;
   }
+  .btn-copy { width: 85px; margin: 0; background: #334155; color: #FBBF24; }
   .btn-skin { background: #1E293B; color: #00F0FF; }
+  .btn-solo { background: #39FF14; color: #0B0F19; }
   .btn-host { background: #00F0FF; color: #0B0F19; }
   .btn-join { background: #FF2A85; color: #FFF; }
-  .btn-solo { background: #39FF14; color: #0B0F19; }
   #mpBox { display: none; margin-top: 8px; text-align: left; }
-  #status { color: #FBBF24; font-size: 12px; min-height: 16px; margin-top: 6px; }
+  #status { color: #FBBF24; font-size: 12px; min-height: 18px; margin-top: 6px; }
   #hud {
-    display: none; width: 900px; justify-content: space-between;
-    padding: 10px 4px; font-size: 15px; font-weight: bold;
+    display: none; width: 96vw; max-width: 920px; justify-content: space-between;
+    padding: 6px 4px; font-size: 14px; font-weight: bold;
   }
   canvas {
-    display: none; background: #0B0F19; border: 3px solid #FF2A85;
-    border-radius: 6px; cursor: crosshair;
+    display: none; width: 96vw; max-width: 920px; height: auto;
+    background: #0B0F19; border: 3px solid #FF2A85; border-radius: 8px;
+  }
+  #touchControls {
+    display: none; position: fixed; bottom: 18px; left: 0; right: 0;
+    padding: 0 26px; justify-content: space-between; align-items: center;
+    pointer-events: none; z-index: 20;
+  }
+  #joyBase {
+    width: 110px; height: 110px; border-radius: 50%;
+    background: rgba(30, 41, 59, 0.55); border: 2px solid #00F0FF;
+    position: relative; pointer-events: auto;
+  }
+  #joyKnob {
+    width: 44px; height: 44px; border-radius: 50%; background: #00F0FF;
+    position: absolute; top: 31px; left: 31px; opacity: 0.85;
+  }
+  #touchBoost {
+    width: 86px; height: 86px; border-radius: 50%; margin: 0;
+    background: rgba(255, 42, 133, 0.75); border: 2px solid #FFF;
+    color: #FFF; font-size: 13px; pointer-events: auto;
   }
 </style>
 </head>
 <body>
 <div id="lobby" class="card">
   <h1>NEON SLITHER</h1>
-  <div class="sub">WEB MULTIPLAYER ARENA</div>
+  <div class="sub">ULTIMATE MULTIPLAYER ARENA</div>
   <label>USERNAME</label>
-  <input id="uname" maxlength="14">
+  <input id="uname" maxlength="14" style="margin: 5px 0 12px;">
   <button id="skinBtn" class="btn-skin">SKIN: CYAN PULSE [CHANGE]</button>
   <button id="soloBtn" class="btn-solo">PLAY SOLO (AI BOTS)</button>
   <button id="hostBtn" class="btn-host">HOST MULTIPLAYER ROOM</button>
   <button id="joinModeBtn" class="btn-join">JOIN FRIEND'S ROOM</button>
   <div id="mpBox">
-    <label id="step1Lbl">1. COPY & SEND THIS INVITE CODE TO FRIEND:</label>
-    <input id="outCode" readonly style="color:#FBBF24;">
+    <label id="step1Lbl">1. COPY & SEND INVITE CODE TO FRIEND:</label>
+    <div class="row">
+      <input id="outCode" readonly style="color:#FBBF24;">
+      <button id="copyBtn" class="btn-copy">COPY</button>
+    </div>
     <label id="step2Lbl">2. PASTE FRIEND'S REPLY CODE HERE:</label>
-    <input id="inCode" placeholder="Paste code here...">
+    <input id="inCode" placeholder="Paste code here..." style="margin:5px 0 10px;">
     <button id="connectBtn" class="btn-host">LAUNCH MULTIPLAYER ARENA</button>
   </div>
   <div id="status"></div>
@@ -73,9 +100,13 @@ if (!location.search.includes("v=4")) {
   <span id="roomHud" style="color:#FBBF24;">MODE: SOLO</span>
   <span id="killHud" style="color:#FF2A85;">TAKEDOWNS: 0</span>
 </div>
-<canvas id="arena" width="900" height="620"></canvas>
+<canvas id="arena" width="920" height="620"></canvas>
+<div id="touchControls">
+  <div id="joyBase"><div id="joyKnob"></div></div>
+  <button id="touchBoost">BOOST</button>
+</div>
 <script>
-const W = 900, H = 620, INIT_LEN = 24, ORB_MAX = 45, BOT_MAX = 4;
+const W = 920, H = 620, INIT_LEN = 24, ORB_MAX = 48, BOT_MAX = 5;
 const SKINS = [
   { name: "CYAN PULSE", c: ["#00F0FF", "#00B8D4", "#00838F"] },
   { name: "MAGENTA WAVE", c: ["#FF2A85", "#D81B60", "#880E4F"] },
@@ -87,10 +118,12 @@ const ORB_COLS = ["#FF2A85", "#00F0FF", "#B829EA", "#39FF14", "#FF9E00"];
 const BOT_NAMES = ["ViperX", "Nova", "Byte", "ZigZag", "Shadow", "Orbit"];
 
 let skinIdx = 0, isHost = true, myId = "p1", pc = null, dc = null;
-let guestInput = null, state = { snakes: [], orbs: [] };
-let keys = {}, mouse = { x: W / 2, y: H / 2, active: false }, desiredAng = 0;
+let guestInput = null, state = { snakes: [], orbs: [], powerups: [], feed: [] };
+let particles = [], keys = {}, desiredAng = 0, touchBoost = false;
+let mouse = { x: W / 2, y: H / 2, active: false, down: false };
 
 const unameEl = document.getElementById("uname");
+const statusEl = document.getElementById("status");
 unameEl.value = "Player_" + Math.floor(100 + Math.random() * 900);
 
 document.getElementById("skinBtn").onclick = () => {
@@ -101,9 +134,18 @@ document.getElementById("skinBtn").onclick = () => {
   btn.style.color = s.c;
 };
 
+document.getElementById("copyBtn").onclick = async () => {
+  const box = document.getElementById("outCode");
+  if (!box.value) return;
+  box.select();
+  try { await navigator.clipboard.writeText(box.value); }
+  catch (e) { document.execCommand("copy"); }
+  statusEl.textContent = "Copied! Send it to your friend.";
+};
+
 function makeSnake(id, name, skin, isBot = false) {
-  const x = 120 + Math.random() * (W - 240);
-  const y = 120 + Math.random() * (H - 240);
+  const x = 130 + Math.random() * (W - 260);
+  const y = 130 + Math.random() * (H - 260);
   const ang = Math.random() * Math.PI * 2;
   const pts = [];
   for (let i = 0; i < INIT_LEN; i++) {
@@ -111,7 +153,8 @@ function makeSnake(id, name, skin, isBot = false) {
   }
   return {
     id, name, x, y, ang, mass: 240, skin, isBot, alive: true,
-    boost: false, bCnt: 0, kills: 0, pts, aiT: 0, aiAng: ang
+    boost: false, bCnt: 0, kills: 0, pts, aiT: 0, aiAng: ang,
+    magT: 0, ghostT: 0
   };
 }
 
@@ -124,11 +167,21 @@ function spawnOrb(x, y, big = false) {
   };
 }
 
-function initWorld(hostName, includeGuest = false, guestName = "Player 2", guestSkin = 1) {
-  state = { snakes: [], orbs: [] };
+function spawnPowerup() {
+  const type = Math.random() < 0.5 ? "magnet" : "ghost";
+  return {
+    x: 45 + Math.random() * (W - 90),
+    y: 45 + Math.random() * (H - 90),
+    type, r: 12
+  };
+}
+
+function initWorld(hostName, hasGuest = false, guestName = "Guest", guestSkin = 1) {
+  state = { snakes: [], orbs: [], powerups: [], feed: [] };
   state.snakes.push(makeSnake("p1", hostName, skinIdx, false));
-  if (includeGuest) state.snakes.push(makeSnake("p2", guestName, guestSkin, false));
+  if (hasGuest) state.snakes.push(makeSnake("p2", guestName, guestSkin, false));
   for (let i = 0; i < ORB_MAX; i++) state.orbs.push(spawnOrb());
+  for (let i = 0; i < 3; i++) state.powerups.push(spawnPowerup());
   for (let i = 0; i < BOT_MAX; i++) {
     state.snakes.push(makeSnake("bot_" + i, BOT_NAMES[i], i % SKINS.length, true));
   }
@@ -138,6 +191,9 @@ function launchGame(label) {
   document.getElementById("lobby").style.display = "none";
   document.getElementById("hud").style.display = "flex";
   document.getElementById("arena").style.display = "block";
+  if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+    document.getElementById("touchControls").style.display = "flex";
+  }
   document.getElementById("roomHud").textContent = label;
   requestAnimationFrame(loop);
 }
@@ -148,56 +204,59 @@ document.getElementById("soloBtn").onclick = () => {
   launchGame("MODE: SOLO ARENA");
 };
 
-const iceCfg = {
-  iceServers: [
-    { urls: ["stun", "://google.com", "19302"].join(":") },
-    { urls: ["stun", "://google.com", "19302"].join(":") }
-  ]
-};
+function createSafePeer() {
+  const host = ["stun", "l", "google", "com"].join(".");
+  try {
+    return new RTCPeerConnection({ iceServers: [{ urls: "stun:" + host + ":19302" }] });
+  } catch (e) { return new RTCPeerConnection(); }
+}
 
 document.getElementById("hostBtn").onclick = async () => {
-  isHost = true; myId = "p1";
-  document.getElementById("mpBox").style.display = "block";
-  document.getElementById("step1Lbl").textContent = "1. COPY & SEND INVITE CODE TO FRIEND:";
-  document.getElementById("step2Lbl").textContent = "2. PASTE FRIEND'S REPLY CODE HERE:";
-  document.getElementById("status").textContent = "Generating invite code...";
-
-  pc = new RTCPeerConnection(iceCfg);
-  dc = pc.createDataChannel("slither");
-  setupDataChannel(dc);
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-  await waitIce(pc);
-  document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
-  document.getElementById("status").textContent = "Invite ready! Click outCode to copy.";
+  try {
+    isHost = true; myId = "p1";
+    document.getElementById("mpBox").style.display = "block";
+    document.getElementById("step1Lbl").textContent = "1. COPY & SEND INVITE CODE TO FRIEND:";
+    document.getElementById("step2Lbl").textContent = "2. PASTE FRIEND'S REPLY CODE HERE:";
+    document.getElementById("connectBtn").textContent = "LAUNCH MULTIPLAYER ARENA";
+    statusEl.textContent = "Generating invite code...";
+    pc = createSafePeer();
+    dc = pc.createDataChannel("slither");
+    setupChannel(dc);
+    await pc.setLocalDescription(await pc.createOffer());
+    await waitIce(pc);
+    document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
+    statusEl.textContent = "Invite ready! Click COPY and send to your friend.";
+  } catch (err) { statusEl.textContent = "Host Error: " + err.message; }
 };
 
 document.getElementById("joinModeBtn").onclick = () => {
   isHost = false; myId = "p2";
   document.getElementById("mpBox").style.display = "block";
-  document.getElementById("step1Lbl").textContent = "1. PASTE HOST'S INVITE CODE HERE:";
-  document.getElementById("inCode").placeholder = "Paste Host's invite code...";
-  document.getElementById("step2Lbl").textContent = "2. CLICK GENERATE & SEND REPLY BACK:";
+  document.getElementById("step1Lbl").textContent = "1. COPY GENERATED REPLY CODE BELOW:";
+  document.getElementById("step2Lbl").textContent = "2. PASTE HOST'S INVITE CODE HERE:";
   document.getElementById("outCode").value = "";
   document.getElementById("connectBtn").textContent = "GENERATE REPLY CODE";
+  statusEl.textContent = "Paste Host's invite code in Box 2, then click Generate.";
 };
 
 document.getElementById("connectBtn").onclick = async () => {
-  const pasted = document.getElementById("inCode").value.trim();
-  if (!pasted) return;
-  if (isHost) {
-    await pc.setRemoteDescription(JSON.parse(atob(pasted)));
-    document.getElementById("status").textContent = "Connecting to friend...";
-  } else {
-    pc = new RTCPeerConnection(iceCfg);
-    pc.ondatachannel = e => { dc = e.channel; setupDataChannel(dc); };
-    await pc.setRemoteDescription(JSON.parse(atob(pasted)));
-    const ans = await pc.createAnswer();
-    await pc.setLocalDescription(ans);
-    await waitIce(pc);
-    document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
-    document.getElementById("status").textContent = "Send Reply Code to Host to start!";
-  }
+  const raw = document.getElementById("inCode").value.trim();
+  if (!raw) { statusEl.textContent = "Paste a code first!"; return; }
+  try {
+    const desc = JSON.parse(atob(raw));
+    if (isHost) {
+      await pc.setRemoteDescription(desc);
+      statusEl.textContent = "Connecting to friend...";
+    } else {
+      pc = createSafePeer();
+      pc.ondatachannel = e => { dc = e.channel; setupChannel(dc); };
+      await pc.setRemoteDescription(desc);
+      await pc.setLocalDescription(await pc.createAnswer());
+      await waitIce(pc);
+      document.getElementById("outCode").value = btoa(JSON.stringify(pc.localDescription));
+      statusEl.textContent = "Reply ready! Click COPY and send back to Host.";
+    }
+  } catch (err) { statusEl.textContent = "Invalid code! Copy the full string."; }
 };
 
 function waitIce(conn) {
@@ -206,21 +265,22 @@ function waitIce(conn) {
     conn.onicegatheringstatechange = () => {
       if (conn.iceGatheringState === "complete") res();
     };
-    setTimeout(res, 2000);
+    setTimeout(res, 2200);
   });
 }
 
-function setupDataChannel(channel) {
-  channel.onopen = () => {
+function setupChannel(ch) {
+  ch.onopen = () => {
     if (isHost) {
       initWorld(unameEl.value.trim() || "Host", true, "Guest", (skinIdx + 1) % SKINS.length);
       launchGame("MULTIPLAYER: HOST");
     } else {
-      channel.send(JSON.stringify({ type: "hello", name: unameEl.value.trim() || "Guest", skin: skinIdx }));
+      const nm = unameEl.value.trim() || "Guest";
+      ch.send(JSON.stringify({ type: "hello", name: nm, skin: skinIdx }));
       launchGame("MULTIPLAYER: CONNECTED");
     }
   };
-  channel.onmessage = e => {
+  ch.onmessage = e => {
     const msg = JSON.parse(e.data);
     if (isHost) {
       if (msg.type === "hello") {
@@ -236,16 +296,36 @@ function turnTo(s, target, rate) {
   s.ang += Math.abs(diff) < rate ? diff : Math.sign(diff) * rate;
 }
 
+function addBurst(x, y, color) {
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * Math.PI * 2, spd = 1.5 + Math.random() * 4;
+    particles.push({
+      x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd, life: 28, c: color
+    });
+  }
+}
+
+function pushFeed(text) {
+  state.feed.unshift({ text, ttl: 180 });
+  if (state.feed.length > 3) state.feed.pop();
+}
+
 function stepHost() {
+  state.feed = state.feed.filter(f => --f.ttl > 0);
   for (let s of state.snakes) {
     if (!s.alive) continue;
+    if (s.magT > 0) s.magT--;
+    if (s.ghostT > 0) s.ghostT--;
+
     if (s.isBot) {
       let ax = 0, ay = 0, danger = false;
-      if (s.x < 75) { ax = 1; danger = true; } else if (s.x > W - 75) { ax = -1; danger = true; }
-      if (s.y < 75) { ay = 1; danger = true; } else if (s.y > H - 75) { ay = -1; danger = true; }
+      if (s.x < 75) { ax = 1; danger = true; }
+      else if (s.x > W - 75) { ax = -1; danger = true; }
+      if (s.y < 75) { ay = 1; danger = true; }
+      else if (s.y > H - 75) { ay = -1; danger = true; }
       if (danger) { s.aiAng = Math.atan2(ay, ax); s.boost = false; }
       else if (--s.aiT <= 0) {
-        s.aiT = 15 + Math.floor(Math.random() * 15);
+        s.aiT = 14 + Math.floor(Math.random() * 14);
         const o = state.orbs[Math.floor(Math.random() * state.orbs.length)];
         if (o) s.aiAng = Math.atan2(o.y - s.y, o.x - s.x);
       }
@@ -253,7 +333,9 @@ function stepHost() {
     } else {
       const inp = s.id === "p1" ? getLocalInput() : guestInput;
       if (inp) {
-        if (inp.respawn && !s.alive) Object.assign(s, makeSnake(s.id, s.name, inp.skin));
+        if (inp.respawn && !s.alive) {
+          Object.assign(s, makeSnake(s.id, s.name, inp.skin));
+        }
         turnTo(s, inp.ang, 0.085);
         s.boost = inp.boost && s.mass > 150;
         s.skin = inp.skin;
@@ -271,40 +353,73 @@ function stepHost() {
     while (s.pts.length > targetLen) s.pts.pop();
 
     const rad = Math.min(18, 9 + (targetLen - INIT_LEN) * 0.07);
+    const pullRad = s.magT > 0 ? rad + 150 : rad + 42;
+    const mult = s.magT > 0 ? 2 : 1;
+
     state.orbs = state.orbs.filter(o => {
-      if (Math.hypot(s.x - o.x, s.y - o.y) < rad + o.r + 7) { s.mass += o.v; return false; }
+      const d = Math.hypot(s.x - o.x, s.y - o.y);
+      if (d < pullRad) {
+        o.x += (s.x - o.x) * 0.18; o.y += (s.y - o.y) * 0.18;
+      }
+      if (d < rad + o.r + 7) { s.mass += o.v * mult; return false; }
+      return true;
+    });
+
+    state.powerups = state.powerups.filter(p => {
+      if (Math.hypot(s.x - p.x, s.y - p.y) < rad + p.r + 6) {
+        if (p.type === "magnet") {
+          s.magT = 480; pushFeed(`${s.name} activated 2X MAGNET!`);
+        } else {
+          s.ghostT = 360; pushFeed(`${s.name} activated GHOST PHASE!`);
+        }
+        addBurst(p.x, p.y, p.type === "magnet" ? "#FBBF24" : "#A855F7");
+        return false;
+      }
       return true;
     });
   }
-
+  resolveCollisions();
+}
+function resolveCollisions() {
   for (let s of state.snakes) {
     if (!s.alive) continue;
+    const colMain = SKINS[s.skin % SKINS.length].c[0];
     if (s.x < 10 || s.x > W - 10 || s.y < 10 || s.y > H - 10) {
-      s.alive = false;
-      s.pts.forEach((p, i) => { if (i % 3 === 0) state.orbs.push(spawnOrb(p.x, p.y, true)); });
+      s.alive = false; addBurst(s.x, s.y, colMain);
+      s.pts.forEach((p, i) => {
+        if (i % 3 === 0) state.orbs.push(spawnOrb(p.x, p.y, true));
+      });
       continue;
     }
+    if (s.ghostT > 0) continue;
     for (let o of state.snakes) {
       if (o === s || !o.alive) continue;
       for (let i = 0; i < o.pts.length; i += 2) {
         if (Math.hypot(s.x - o.pts[i].x, s.y - o.pts[i].y) < 15) {
-          s.alive = false; o.kills++;
-          s.pts.forEach((p, idx) => { if (idx % 3 === 0) state.orbs.push(spawnOrb(p.x, p.y, true)); });
+          s.alive = false; o.kills++; addBurst(s.x, s.y, colMain);
+          pushFeed(`${o.name} eliminated ${s.name}!`);
+          s.pts.forEach((p, idx) => {
+            if (idx % 3 === 0) state.orbs.push(spawnOrb(p.x, p.y, true));
+          });
           break;
         }
       }
       if (!s.alive) break;
     }
   }
-  state.snakes = state.snakes.map(s => s.isBot && !s.alive ? makeSnake(s.id, s.name, s.skin, true) : s);
+  state.snakes = state.snakes.map(s =>
+    s.isBot && !s.alive ? makeSnake(s.id, s.name, s.skin, true) : s
+  );
   while (state.orbs.length < ORB_MAX) state.orbs.push(spawnOrb());
+  while (state.powerups.length < 3) state.powerups.push(spawnPowerup());
 
   if (dc && dc.readyState === "open") {
     const slim = {
-      orbs: state.orbs,
+      orbs: state.orbs, powerups: state.powerups, feed: state.feed,
       snakes: state.snakes.map(s => ({
         id: s.id, name: s.name, x: s.x, y: s.y, ang: s.ang, mass: s.mass,
         skin: s.skin, alive: s.alive, boost: s.boost, kills: s.kills,
+        magT: s.magT, ghostT: s.ghostT,
         pts: s.pts.filter((_, i) => i % 2 === 0)
       }))
     };
@@ -317,11 +432,13 @@ function getLocalInput() {
   if (me && me.alive) {
     if (keys["ArrowLeft"] || keys["a"]) desiredAng -= 0.085;
     else if (keys["ArrowRight"] || keys["d"]) desiredAng += 0.085;
-    else if (mouse.active) desiredAng = Math.atan2(mouse.y - me.y, mouse.x - me.x);
+    else if (mouse.active) {
+      desiredAng = Math.atan2(mouse.y - me.y, mouse.x - me.x);
+    }
   }
   return {
     type: "input", ang: desiredAng, skin: skinIdx,
-    boost: !!(keys[" "] || keys["ArrowUp"] || keys["w"] || mouse.down),
+    boost: !!(keys[" "] || keys["ArrowUp"] || keys["w"] || mouse.down || touchBoost),
     respawn: !!(keys[" "] && me && !me.alive)
   };
 }
@@ -336,16 +453,42 @@ window.onkeydown = e => {
 window.onkeyup = e => { keys[e.key] = false; };
 canvas.onmousemove = e => {
   const r = canvas.getBoundingClientRect();
-  mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top; mouse.active = true;
+  mouse.x = (e.clientX - r.left) * (W / r.width);
+  mouse.y = (e.clientY - r.top) * (H / r.height);
+  mouse.active = true;
 };
 canvas.onmousedown = () => { mouse.down = true; };
 window.onmouseup = () => { mouse.down = false; };
+
+const joyBase = document.getElementById("joyBase");
+const joyKnob = document.getElementById("joyKnob");
+joyBase.ontouchmove = e => {
+  e.preventDefault();
+  const t = e.touches[0], rect = joyBase.getBoundingClientRect();
+  const dx = t.clientX - (rect.left + 55), dy = t.clientY - (rect.top + 55);
+  const dist = Math.min(34, Math.hypot(dx, dy)), ang = Math.atan2(dy, dx);
+  joyKnob.style.left = (31 + Math.cos(ang) * dist) + "px";
+  joyKnob.style.top = (31 + Math.sin(ang) * dist) + "px";
+  mouse.active = false; desiredAng = ang;
+};
+joyBase.ontouchend = () => {
+  joyKnob.style.left = "31px"; joyKnob.style.top = "31px";
+};
+const tBoostBtn = document.getElementById("touchBoost");
+tBoostBtn.ontouchstart = e => {
+  e.preventDefault(); touchBoost = true;
+  const me = state.snakes.find(s => s.id === myId);
+  if (me && !me.alive) keys[" "] = true;
+};
+tBoostBtn.ontouchend = () => { touchBoost = false; keys[" "] = false; };
 
 function loop() {
   if (isHost) {
     const inp = getLocalInput();
     const me = state.snakes.find(s => s.id === "p1");
-    if (me && !me.alive && inp.respawn) Object.assign(me, makeSnake("p1", me.name, skinIdx));
+    if (me && !me.alive && inp.respawn) {
+      Object.assign(me, makeSnake("p1", me.name, skinIdx));
+    }
     stepHost();
   } else if (dc && dc.readyState === "open") {
     dc.send(JSON.stringify(getLocalInput()));
@@ -353,22 +496,54 @@ function loop() {
   draw();
   requestAnimationFrame(loop);
 }
-
 function draw() {
   ctx.clearRect(0, 0, W, H);
   ctx.strokeStyle = "#161E31"; ctx.lineWidth = 1;
-  for (let x = 0; x < W; x += 45) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-  for (let y = 0; y < H; y += 45) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  for (let x = 0; x < W; x += 45) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+  }
+  for (let y = 0; y < H; y += 45) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+  }
 
   for (let o of state.orbs) {
     ctx.save(); ctx.shadowBlur = 10; ctx.shadowColor = o.c; ctx.fillStyle = o.c;
-    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
   }
+
+  for (let p of (state.powerups || [])) {
+    const col = p.type === "magnet" ? "#FBBF24" : "#A855F7";
+    ctx.save(); ctx.shadowBlur = 16; ctx.shadowColor = col; ctx.fillStyle = col;
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#0B0F19"; ctx.font = "bold 12px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(p.type === "magnet" ? "M" : "G", p.x, p.y + 4);
+    ctx.restore();
+  }
+
+  particles = particles.filter(p => --p.life > 0);
+  for (let p of particles) {
+    p.x += p.vx; p.y += p.vy;
+    ctx.fillStyle = p.c; ctx.globalAlpha = p.life / 28;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3.5, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  const ranked = state.snakes.filter(s => s.alive).sort((a, b) => b.mass - a.mass);
+  const leaderId = ranked[0] ? ranked[0].id : null;
 
   for (let s of state.snakes) {
     if (!s.alive) continue;
     const cols = SKINS[s.skin % SKINS.length].c;
     const rad = Math.min(18, 9 + (s.mass - 240) / 170);
+    ctx.globalAlpha = s.ghostT > 0 ? 0.45 : 1.0;
+
+    if (s.magT > 0) {
+      ctx.strokeStyle = "rgba(251, 191, 36, 0.25)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(s.x, s.y, rad + 150, 0, Math.PI * 2); ctx.stroke();
+    }
+
     for (let i = s.pts.length - 1; i >= 0; i--) {
       ctx.fillStyle = s.boost && i % 2 === 0 ? "#FFFFFF" : cols[i % 3];
       ctx.beginPath(); ctx.arc(s.pts[i].x, s.pts[i].y, rad, 0, Math.PI * 2); ctx.fill();
@@ -377,45 +552,71 @@ function draw() {
     for (let side of [-1, 1]) {
       const ex = s.x + Math.cos(s.ang + side * 0.55) * ed;
       const ey = s.y + Math.sin(s.ang + side * 0.55) * ed;
-      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols; ctx.fillStyle = "#FFF";
+      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols[0]; ctx.fillStyle = "#FFF";
       ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill(); ctx.restore();
-      ctx.strokeStyle = cols; ctx.lineWidth = 1.3;
-      ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = "#0B0F19";
-      const px = ex + Math.cos(s.ang) * (er * 0.35), py = ey + Math.sin(s.ang) * (er * 0.35);
+      const px = ex + Math.cos(s.ang) * (er * 0.35);
+      const py = ey + Math.sin(s.ang) * (er * 0.35);
       ctx.beginPath(); ctx.arc(px, py, er * 0.5, 0, Math.PI * 2); ctx.fill();
     }
+    ctx.globalAlpha = 1.0;
     ctx.fillStyle = s.id === myId ? "#00F0FF" : "#CBD5E1";
     ctx.font = "bold 12px monospace"; ctx.textAlign = "center";
-    ctx.fillText(s.name, s.x, s.y - rad - 10);
+    ctx.fillText((s.id === leaderId ? "👑 " : "") + s.name, s.x, s.y - rad - 10);
   }
 
-  const ranked = state.snakes.filter(s => s.alive).sort((a, b) => b.mass - a.mass).slice(0, 5);
-  const bx = W - 195, by = 14;
-  ctx.fillStyle = "rgba(17, 24, 39, 0.88)"; ctx.fillRect(bx, by, 180, 34 + ranked.length * 20);
-  ctx.strokeStyle = "#1E293B"; ctx.strokeRect(bx, by, 180, 34 + ranked.length * 20);
+  const top5 = ranked.slice(0, 5), bx = W - 195, by = 14;
+  ctx.fillStyle = "rgba(17, 24, 39, 0.88)";
+  ctx.fillRect(bx, by, 180, 34 + top5.length * 20);
+  ctx.strokeStyle = "#1E293B";
+  ctx.strokeRect(bx, by, 180, 34 + top5.length * 20);
   ctx.fillStyle = "#FBBF24"; ctx.font = "bold 11px monospace"; ctx.textAlign = "center";
   ctx.fillText("LIVE LEADERBOARD", bx + 90, by + 18);
-
-  ranked.forEach((s, idx) => {
+  top5.forEach((s, idx) => {
     const yp = by + 38 + idx * 20;
     ctx.fillStyle = s.id === myId ? "#00F0FF" : "#CBD5E1";
-    ctx.font = s.id === myId ? "bold 11px monospace" : "11px monospace";
-    ctx.textAlign = "left"; ctx.fillText(`#${idx + 1} ${s.name.slice(0, 10)}`, bx + 10, yp);
+    ctx.textAlign = "left";
+    ctx.fillText(`#${idx + 1} ${s.name.slice(0, 10)}`, bx + 10, yp);
     ctx.textAlign = "right"; ctx.fillText(s.mass, bx + 170, yp);
   });
+
+  (state.feed || []).forEach((f, idx) => {
+    ctx.fillStyle = "#FF2A85"; ctx.font = "bold 12px monospace"; ctx.textAlign = "left";
+    ctx.fillText("⚡ " + f.text, 16, 26 + idx * 18);
+  });
+
+  const mx = W - 62, my = H - 62, mr = 46;
+  ctx.fillStyle = "rgba(17, 24, 39, 0.85)";
+  ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#334155"; ctx.stroke();
+  for (let s of ranked) {
+    const rx = mx - mr + (s.x / W) * (mr * 2);
+    const ry = my - mr + (s.y / H) * (mr * 2);
+    ctx.fillStyle = s.id === myId ? "#00F0FF" : (s.isBot ? "#FF2A85" : "#39FF14");
+    ctx.beginPath(); ctx.arc(rx, ry, s.id === myId ? 3.5 : 2.5, 0, Math.PI * 2); ctx.fill();
+  }
 
   const me = state.snakes.find(s => s.id === myId);
   if (me) {
     document.getElementById("massHud").textContent = "MASS: " + me.mass;
     document.getElementById("killHud").textContent = "TAKEDOWNS: " + me.kills;
+    if (me.magT > 0) {
+      ctx.fillStyle = "#FBBF24"; ctx.fillRect(16, H - 32, (me.magT / 480) * 140, 8);
+      ctx.font = "bold 10px monospace"; ctx.textAlign = "left";
+      ctx.fillText("2X MAGNET", 16, H - 37);
+    }
+    if (me.ghostT > 0) {
+      ctx.fillStyle = "#A855F7"; ctx.fillRect(16, H - 16, (me.ghostT / 360) * 140, 8);
+      ctx.font = "bold 10px monospace"; ctx.textAlign = "left";
+      ctx.fillText("GHOST PHASE", 16, H - 20);
+    }
     if (!me.alive) {
-      ctx.fillStyle = "rgba(11,15,25,0.85)"; ctx.fillRect(250, 210, 400, 180);
-      ctx.strokeStyle = "#00F0FF"; ctx.strokeRect(250, 210, 400, 180);
+      ctx.fillStyle = "rgba(11,15,25,0.85)"; ctx.fillRect(260, 210, 400, 180);
+      ctx.strokeStyle = "#00F0FF"; ctx.strokeRect(260, 210, 400, 180);
       ctx.fillStyle = "#FF2A85"; ctx.font = "bold 26px monospace"; ctx.textAlign = "center";
       ctx.fillText("ELIMINATED!", W / 2, 270);
       ctx.fillStyle = "#F8FAFC"; ctx.font = "14px monospace";
-      ctx.fillText("Press [SPACE] to Re-Enter Arena", W / 2, 330);
+      ctx.fillText("Press [SPACE] or Tap BOOST to Respawn", W / 2, 330);
     }
   }
 }
