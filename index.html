@@ -6,8 +6,8 @@
 <link rel="icon" href="data:,">
 <title>NEON SLITHER - Ultimate Arena</title>
 <script>
-if (!location.search.includes("v=9")) {
-  location.replace(location.pathname + "?v=9" + location.hash);
+if (!location.search.includes("v=10")) {
+  location.replace(location.pathname + "?v=10" + location.hash);
 }
 </script>
 <style>
@@ -44,6 +44,12 @@ if (!location.search.includes("v=9")) {
     display: none; width: 96vw; max-width: 920px; justify-content: space-between;
     padding: 6px 4px; font-size: 14px; font-weight: bold;
   }
+  #cornerCode {
+    display: none; position: fixed; top: 12px; left: 14px;
+    background: rgba(17, 24, 39, 0.92); border: 1.5px solid #FBBF24;
+    color: #FBBF24; padding: 6px 12px; border-radius: 6px;
+    font-size: 13px; font-weight: bold; cursor: pointer; z-index: 30;
+  }
   canvas {
     display: none; width: 96vw; max-width: 920px; height: auto;
     background: #0B0F19; border: 3px solid #FF2A85; border-radius: 8px;
@@ -67,13 +73,6 @@ if (!location.search.includes("v=9")) {
     background: rgba(255, 42, 133, 0.75); border: 2px solid #FFF;
     color: #FFF; font-size: 13px; pointer-events: auto;
   }
-    #cornerCode {
-    display: none; position: fixed; top: 12px; left: 14px;
-    background: rgba(17, 24, 39, 0.9); border: 1.5px solid #FBBF24;
-    color: #FBBF24; padding: 6px 12px; border-radius: 6px;
-    font-size: 13px; font-weight: bold; cursor: pointer; z-index: 30;
-  }
-
 </style>
 </head>
 <body>
@@ -96,7 +95,7 @@ if (!location.search.includes("v=9")) {
   <span id="roomHud" style="color:#FBBF24;">MODE: SOLO</span>
   <span id="killHud" style="color:#FF2A85;">TAKEDOWNS: 0</span>
 </div>
-  <div id="cornerCode" title="Click to copy Room Code">CODE: ----</div>
+<div id="cornerCode" title="Click to copy Room Code">ROOM: ----</div>
 <canvas id="arena" width="920" height="620"></canvas>
 <div id="touchControls">
   <div id="joyBase"><div id="joyKnob"></div></div>
@@ -128,7 +127,7 @@ document.getElementById("skinBtn").onclick = () => {
   const s = SKINS[skinIdx];
   const btn = document.getElementById("skinBtn");
   btn.textContent = `SKIN: ${s.name} [CHANGE]`;
-  btn.style.color = s.c[0];
+  btn.style.color = s.c;
 };
 
 function makeSnake(id, name, skin, isBot = false) {
@@ -174,13 +173,7 @@ function initWorld(hostName) {
   }
 }
 
-function launchGame(label) {
-  document.getElementById("lobby").style.display = "none";
-  document.getElementById("hud").style.display = "flex";
-  document.getElementById("arena").style.display = "block";
-  if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
-    document.getElementById("touchControls").style.display = "flex";
-    function launchGame(label, rawCode = "") {
+function launchGame(label, rawCode = "") {
   document.getElementById("lobby").style.display = "none";
   document.getElementById("hud").style.display = "flex";
   document.getElementById("arena").style.display = "block";
@@ -198,11 +191,6 @@ function launchGame(label) {
       setTimeout(() => badge.textContent = "ROOM: " + rawCode + " [COPY]", 1500);
     };
   }
-  requestAnimationFrame(loop);
-}
-
-  }
-  document.getElementById("roomHud").textContent = label;
   requestAnimationFrame(loop);
 }
 
@@ -249,7 +237,7 @@ function connectMqttRoom(roomCode, asHost) {
 
   ws.onmessage = e => {
     const u = new Uint8Array(e.data);
-    const type = u[0] >> 4;
+    const type = u >> 4;
     if (type === 2) {
       const subBody = [0, 1, ...encodeStr(subTopic), 0];
       ws.send(new Uint8Array([0x82, ...encodeLen(subBody.length), ...subBody]));
@@ -257,11 +245,11 @@ function connectMqttRoom(roomCode, asHost) {
       dc = relay;
       if (asHost) {
         initWorld(unameEl.value.trim() || "Host");
-        launchGame("ROOM CODE: " + roomCode);
+        launchGame("ROOM CODE: " + roomCode, roomCode);
       } else {
         const nm = unameEl.value.trim() || "Guest";
         relay.send(JSON.stringify({ type: "hello", name: nm, skin: skinIdx }));
-        launchGame("ROOM: " + roomCode);
+        launchGame("ROOM: " + roomCode, roomCode);
       }
     } else if (type === 3) {
       let idx = 1, mult = 1, rem = 0, b;
@@ -329,22 +317,22 @@ function stepHost() {
       if (s.y < 75) { ay = 1; danger = true; } else if (s.y > H - 75) { ay = -1; danger = true; }
       if (danger) { s.aiAng = Math.atan2(ay, ax); s.boost = false; }
       else if (--s.aiT <= 0) {
-        s.aiT = 14 + Math.floor(Math.random() * 14);
+        s.aiT = 18 + Math.floor(Math.random() * 18);
         const o = state.orbs[Math.floor(Math.random() * state.orbs.length)];
         if (o) s.aiAng = Math.atan2(o.y - s.y, o.x - s.x);
       }
-      turnTo(s, s.aiAng, 0.07);
+      turnTo(s, s.aiAng, 0.05);
     } else {
       const inp = s.id === "p1" ? getLocalInput() : guestInput;
       if (inp) {
         if (inp.respawn && !s.alive) Object.assign(s, makeSnake(s.id, s.name, inp.skin));
-        turnTo(s, inp.ang, 0.085);
+        turnTo(s, inp.ang, 0.065);
         s.boost = inp.boost && s.mass > 150;
         s.skin = inp.skin;
       }
     }
-    const spd = s.boost ? 6.0 : 3.3;
-    if (s.boost && ++s.bCnt >= 18) {
+    const spd = s.boost ? 3.9 : 2.1;
+    if (s.boost && ++s.bCnt >= 22) {
       s.bCnt = 0; s.mass -= 10;
       const tail = s.pts[s.pts.length - 1];
       if (tail) state.orbs.push(spawnOrb(tail.x, tail.y, false));
@@ -378,7 +366,7 @@ function stepHost() {
 
   for (let s of state.snakes) {
     if (!s.alive) continue;
-    const colMain = SKINS[s.skin % SKINS.length].c[0];
+    const colMain = SKINS[s.skin % SKINS.length].c;
     if (s.x < 10 || s.x > W - 10 || s.y < 10 || s.y > H - 10) {
       s.alive = false; addBurst(s.x, s.y, colMain);
       s.pts.forEach((p, i) => { if (i % 3 === 0) state.orbs.push(spawnOrb(p.x, p.y, true)); });
@@ -420,8 +408,8 @@ function stepHost() {
 function getLocalInput() {
   const me = state.snakes.find(s => s.id === myId);
   if (me && me.alive) {
-    if (keys["ArrowLeft"] || keys["a"]) desiredAng -= 0.085;
-    else if (keys["ArrowRight"] || keys["d"]) desiredAng += 0.085;
+    if (keys["ArrowLeft"] || keys["a"]) desiredAng -= 0.065;
+    else if (keys["ArrowRight"] || keys["d"]) desiredAng += 0.065;
     else if (mouse.active) desiredAng = Math.atan2(mouse.y - me.y, mouse.x - me.x);
   }
   return {
@@ -452,7 +440,7 @@ const joyBase = document.getElementById("joyBase");
 const joyKnob = document.getElementById("joyKnob");
 joyBase.ontouchmove = e => {
   e.preventDefault();
-  const t = e.touches[0], rect = joyBase.getBoundingClientRect();
+  const t = e.touches, rect = joyBase.getBoundingClientRect();
   const dx = t.clientX - (rect.left + 55), dy = t.clientY - (rect.top + 55);
   const dist = Math.min(34, Math.hypot(dx, dy)), ang = Math.atan2(dy, dx);
   joyKnob.style.left = (31 + Math.cos(ang) * dist) + "px";
@@ -477,13 +465,6 @@ function loop() {
   } else if (dc && dc.readyState === "open") {
     dc.send(JSON.stringify(getLocalInput()));
   }
-          turnTo(s, inp.ang, 0.065);
-        s.boost = inp.boost && s.mass > 150;
-        s.skin = inp.skin;
-      }
-    }
-    const spd = s.boost ? 3.9 : 2.1;
-
   draw();
   requestAnimationFrame(loop);
 }
@@ -516,7 +497,7 @@ function draw() {
   ctx.globalAlpha = 1;
 
   const ranked = state.snakes.filter(s => s.alive).sort((a, b) => b.mass - a.mass);
-  const leaderId = ranked[0] ? ranked[0].id : null;
+  const leaderId = ranked ? ranked.id : null;
 
   for (let s of state.snakes) {
     if (!s.alive) continue;
@@ -537,7 +518,7 @@ function draw() {
     for (let side of [-1, 1]) {
       const ex = s.x + Math.cos(s.ang + side * 0.55) * ed;
       const ey = s.y + Math.sin(s.ang + side * 0.55) * ed;
-      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols[0]; ctx.fillStyle = "#FFF";
+      ctx.save(); ctx.shadowBlur = 14; ctx.shadowColor = cols; ctx.fillStyle = "#FFF";
       ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       ctx.fillStyle = "#0B0F19";
       const px = ex + Math.cos(s.ang) * (er * 0.35), py = ey + Math.sin(s.ang) * (er * 0.35);
@@ -563,7 +544,7 @@ function draw() {
 
   (state.feed || []).forEach((f, idx) => {
     ctx.fillStyle = "#FF2A85"; ctx.font = "bold 12px monospace"; ctx.textAlign = "left";
-    ctx.fillText("⚡ " + f.text, 16, 26 + idx * 18);
+    ctx.fillText("⚡ " + f.text, 16, 48 + idx * 18);
   });
 
   const mx = W - 62, my = H - 62, mr = 46;
