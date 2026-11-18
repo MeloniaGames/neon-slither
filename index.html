@@ -200,16 +200,64 @@ document.getElementById("soloBtn").onclick = () => {
   launchGame("MODE: SOLO ARENA");
 };
 function connectMqttRoom(roomCode, asHost) {
-  const host = ["broker", "emqx", "io"].join(".");
-  const ws = new WebSocket("wss://" + host + ":8084/mqtt", "mqtt");
-  ws.binaryType = "arraybuffer";
-  const subTopic = "neonslither/" + roomCode + (asHost ? "/in" : "/out");
-  const pubTopic = "neonslither/" + roomCode + (asHost ? "/out" : "/in");
+  if (asHost) {
+    initWorld(unameEl.value.trim() || "Host");
+    launchGame("ROOM CODE: " + roomCode, roomCode);
+  }
+  const brokers = [
+    "wss://" + ["broker", "hivemq", "com"].join(".") + ":8884/mqtt",
+    "wss://" + ["broker", "emqx", "io"].join(".") + ":8084/mqtt"
+  ];
+  let connected = false;
+  brokers.forEach(url => {
+    const ws = new WebSocket(url, "mqtt");
+    ws.binaryType = "arraybuffer";
+    const subTopic = "neonslither/" + roomCode + (asHost ? "/in" : "/out");
+    const pubTopic = "neonslither/" + roomCode + (asHost ? "/out" : "/in");
+    const encS = s => { const b = new TextEncoder().encode(s); return [b.length >> 8, b.length & 255, ...b]; };
+    const encL = l => { const o = []; do { let d = l % 128; l = Math.floor(l / 128); if (l > 0) d |= 128; o.push(d); } while (l > 0); return o; };
+    const relay = {
+      readyState: "open",
+      send(str) {
+        if (ws.readyState !== 1) return;
+        const body = [...encS(pubTopic), ...new TextEncoder().encode(str)];
+        ws.send(new Uint8Array([0x30, ...encL(body.length), ...body]));
+      }
+    };
+    ws.onopen = () => {
+      if (connected) { ws.close(); return; }
+      const cid = "ns_" + Math.random().toString(36).slice(2, 10);
+      const body = [0, 4, 77, 81, 84, 84, 4, 2, 0, 60, ...encS(cid)];
+      ws.send(new Uint8Array([0x10, ...encL(body.length), ...body]));
+    };
+    ws.onmessage = e => {
+      const u = new Uint8Array(e.data), type = u >> 4;
+      if (type === 2 && !connected) {
+        connected = true;
+        const sub = [0, 1, ...encS(subTopic), 0];
+        ws.send(new Uint8Array([0x82, ...encL(sub.length), ...sub]));
+        dc = relay;
+        if (!asHost) {
+          relay.send(JSON.stringify({ type: "hello", name: unameEl.value.trim() || "Guest", skin: skinIdx }));
+          launchGame("ROOM: " + roomCode, roomCode);
+        }
+      } else if (type === 3) {
+        let i = 1, m = 1, r = 0, b;
+        do { b = u[i++]; r += (b & 127) * m; m *= 128; } while (b & 128);
+        const tl = (u[i] << 8) | u[i + 1];
+        const msg = JSON.parse(new TextDecoder().decode(u.slice(i + 2 + tl, i + r)));
+        if (asHost) {
+          if (msg.type === "hello") {
+            state.snakes = state.snakes.filter(s => s.id !== "p2");
+            state.snakes.push(makeSnake("p2", msg.name, msg.skin, false));
+            pushFeed(`${msg.name} joined the arena!`);
+          } else if (msg.type === "input") guestInput = msg;
+        } else if (msg.type === "state") state = msg.data;
+      }
+    };
+  });
+}
 
-  const encodeStr = s => {
-    const b = new TextEncoder().encode(s);
-    return [b.length >> 8, b.length & 255, ...b];
-  };
   const encodeLen = len => {
     const out = [];
     do {
