@@ -67,6 +67,13 @@ if (!location.search.includes("v=8")) {
     background: rgba(255, 42, 133, 0.75); border: 2px solid #FFF;
     color: #FFF; font-size: 13px; pointer-events: auto;
   }
+    #cornerCode {
+    display: none; position: fixed; top: 12px; left: 14px;
+    background: rgba(17, 24, 39, 0.9); border: 1.5px solid #FBBF24;
+    color: #FBBF24; padding: 6px 12px; border-radius: 6px;
+    font-size: 13px; font-weight: bold; cursor: pointer; z-index: 30;
+  }
+
 </style>
 </head>
 <body>
@@ -89,6 +96,7 @@ if (!location.search.includes("v=8")) {
   <span id="roomHud" style="color:#FBBF24;">MODE: SOLO</span>
   <span id="killHud" style="color:#FF2A85;">TAKEDOWNS: 0</span>
 </div>
+  <div id="cornerCode" title="Click to copy Room Code">CODE: ----</div>
 <canvas id="arena" width="920" height="620"></canvas>
 <div id="touchControls">
   <div id="joyBase"><div id="joyKnob"></div></div>
@@ -172,6 +180,27 @@ function launchGame(label) {
   document.getElementById("arena").style.display = "block";
   if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
     document.getElementById("touchControls").style.display = "flex";
+    function launchGame(label, rawCode = "") {
+  document.getElementById("lobby").style.display = "none";
+  document.getElementById("hud").style.display = "flex";
+  document.getElementById("arena").style.display = "block";
+  if ("ontouchstart" in window || navigator.maxTouchPoints > 0) {
+    document.getElementById("touchControls").style.display = "flex";
+  }
+  document.getElementById("roomHud").textContent = label;
+  if (rawCode) {
+    const badge = document.getElementById("cornerCode");
+    badge.style.display = "block";
+    badge.textContent = "ROOM: " + rawCode + " [COPY]";
+    badge.onclick = () => {
+      navigator.clipboard?.writeText(rawCode);
+      badge.textContent = "COPIED: " + rawCode;
+      setTimeout(() => badge.textContent = "ROOM: " + rawCode + " [COPY]", 1500);
+    };
+  }
+  requestAnimationFrame(loop);
+}
+
   }
   document.getElementById("roomHud").textContent = label;
   requestAnimationFrame(loop);
@@ -448,6 +477,13 @@ function loop() {
   } else if (dc && dc.readyState === "open") {
     dc.send(JSON.stringify(getLocalInput()));
   }
+          turnTo(s, inp.ang, 0.065);
+        s.boost = inp.boost && s.mass > 150;
+        s.skin = inp.skin;
+      }
+    }
+    const spd = s.boost ? 3.9 : 2.1;
+
   draw();
   requestAnimationFrame(loop);
 }
